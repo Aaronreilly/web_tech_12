@@ -1,0 +1,65 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "mongodb"
+  url = env("DATABASE_URL") }
+
+enum Role { USER ADMIN }
+enum Status { PENDING APPROVED REJECTED }
+
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  email     String    @unique
+  name      String
+  password  String
+  role      Role      @default(USER)
+  products  Product[]
+  comments  Comment[]
+  votes     Upvote[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  slug        String    @unique
+  title       String
+  tagline     String
+  description String
+  category    String
+  techStack   String[]
+  tags        String[]
+  pricing     String    @default("FREE")
+  demoUrl     String?
+  repoUrl     String?
+  images      String[]
+  status      Status    @default(PENDING)
+  featured    Boolean   @default(false)
+  views       Int       @default(0)
+  clicks      Int       @default(0)
+  upvoteCount Int       @default(0)
+  authorId    String    @db.ObjectId
+  author      User      @relation(fields: [authorId], references: [id])
+  comments    Comment[]
+  votes       Upvote[]
+  createdAt   DateTime  @default(now())
+}
+
+model Upvote {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String  @db.ObjectId
+  productId String  @db.ObjectId
+  user      User    @relation(fields: [userId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@unique([userId, productId])
+}
+
+model Comment {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  body      String
+  productId String    @db.ObjectId
+  authorId  String    @db.ObjectId
+  parentId  String?   @db.ObjectId
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id])
+  parent    Comment?  @relation("Replies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies   Comment[] @relation("Replies")
+  createdAt DateTime  @default(now())
+}
